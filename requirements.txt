@@ -5,3 +5,4 @@ Jinja2==3.0.2
 MarkupSafe==2.0.1
 slack-sdk==3.11.2
 Werkzeug==2.0.2
+gunicorn==20.1.0
