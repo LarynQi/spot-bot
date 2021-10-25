@@ -50,3 +50,6 @@ def slack_app():
         return make_response("", 200)
 
     return make_response("", 404)
+
+if __name__ == '__main__':
+    app.run(threaded=True, port=5000)
