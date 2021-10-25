@@ -6,7 +6,6 @@ import smtplib, ssl
 from email.mime.multipart import MIMEMultipart
 from email.message import EmailMessage
 
-from pymongo import MongoClient
 import requests
 
 caught, score, spot, images = {}, {}, {}, {}
@@ -74,16 +73,34 @@ caught, score, spot, images = {}, {}, {}, {}
 #                                 filename=filename)
 #         smtp.send_message(message)
 
-def setup_db():
-    client = MongoClient(f'mongodb+srv://{os.environ.get("DB_USER")}:{os.environ.get("PASSWORD")}@cluster0.xzki5.mongodb.net/codespotting?retryWrites=true&w=majority')
+def read_db(client):
     db = client.get_database('spottings')
     db_caught, db_spot, db_images = db.get_collection('caught'), db.get_collection('spot'), db.get_collection('images')
-    return db_caught, db_spot, db_images
 
-def insert_db(*args):
-    for collection, data in args:
+    caught, spot, images = {item['_id']: item['data'] for item in db_caught.find({})}, {item['_id']: item['data'] for item in db_spot.find({})}, {item['_id']: item['data'] for item in db_images.find({})}
+
+    return caught, spot, images
+
+def write_db(*args):
+    db = args[0].get_database('spottings')
+    collections = [db.get_collection('caught'), db.get_collection('spot'), db.get_collection('images')]
+    for collection, data in zip(collections, args[1:]):
         for entry in data:
             try:
                 collection.insert_one({"_id": entry, "data": data[entry]})
             except:
                 collection.update_one({"_id": entry}, {'$set': {"data": data[entry]}})
+
+def read_prev(client, spotter):
+    db = client.get_database('spottings')
+    try:
+        res = next(iter(db.get_collection('prev').find({})))
+        return [res["_id"], res["data"]]
+    except:
+        return [spotter, 0] 
+    
+
+def write_prev(client, prev):
+    collection = client.get_database('spottings').get_collection('prev')
+    collection.remove({})
+    collection.insert_one({"_id": prev[0], "data": prev[1]})

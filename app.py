@@ -13,8 +13,10 @@ from slack_bolt.adapter.flask import SlackRequestHandler
 
 # from utils import init_db, read_db, write_db, email_db, setup_db, insert_db
 
-from utils import setup_db, insert_db
+from utils import read_db, write_db, read_prev, write_prev
 from dotenv import load_dotenv
+from pymongo import MongoClient
+
 
 load_dotenv()
 
@@ -23,9 +25,10 @@ app = Flask(__name__)
 # init_db()
 # caught, score, spot, images = read_db()
 
-db_caught, db_spot, db_images = setup_db()
+db_client = MongoClient(f'mongodb+srv://{os.environ.get("DB_USER")}:{os.environ.get("PASSWORD")}@cluster0.xzki5.mongodb.net/codespotting?retryWrites=true&w=majority')
 
-caught, spot, images = {item['_id']: item['data'] for item in db_caught.find({})}, {item['_id']: item['data'] for item in db_spot.find({})}, {item['_id']: item['data'] for item in db_images.find({})}
+
+# caught, spot, images = read_db(db_client)
 
 # print(caught, spot, images)
 
@@ -34,7 +37,8 @@ client = WebClient(token=token)
 SPOT_WORDS = ["spot", "spotted", "codespot", "codespotted"]
 USER_PATTERN = r"<@[a-zA-Z0-9]{11}>"
 
-prev = [None, None]
+# prev = [None, None]
+# prev = read_prev(db_client)
 bolt_app = App(token=token, signing_secret=os.environ.get("SIGNING_SECRET"))
 
 handler = SlackRequestHandler(bolt_app)
@@ -48,6 +52,7 @@ def handle_events():
     "subtype": "file_share"
 })
 def log_spot(event, say):
+    caught, spot, images = read_db(db_client)
     if any([w in event.get('text', '').lower() for w in SPOT_WORDS]):
         spotter = event['user']
         found_spotted = re.search(USER_PATTERN, event['text'])
@@ -58,7 +63,7 @@ def log_spot(event, say):
         caught[spotted] = caught.get(spotted, 0) + 1
         for image in event['files']:
             images[spotted] = images.get(spotted, []) + [image['url_private']]
-        global prev
+        prev = read_prev(db_client, spotter)
         if spotter == prev[0]:
             prev[1] += 1
             if prev[1] >= 3:
@@ -66,14 +71,16 @@ def log_spot(event, say):
         else:
             prev[0] = spotter
             prev[1] = 1
+        write_prev(db_client, prev)
         # write_db(caught, score, spot, images)
         # print(caught, spot, images)
-        insert_db((db_caught, caught), (db_spot, spot), (db_images, images))
+        write_db(db_client, caught, spot, images)
         response = client.reactions_add(channel=event['channel'], name="white_check_mark", timestamp=event['ts'])
 
 @bolt_app.message("scoreboard")
 @bolt_app.message("spotboard")
 def scoreboard(event, say):
+    caught, spot, images = read_db(db_client)
     scoreboard = sorted(spot.items(), key=lambda p: p[1], reverse=True)[:5]
     message = "Spotboard:\n" 
     for i in range(len(scoreboard)):
@@ -83,6 +90,7 @@ def scoreboard(event, say):
 
 @bolt_app.message("caughtboard")
 def caughtboard(event, say):
+    caught, spot, images = read_db(db_client)
     caughtboard = sorted(caught.items(), key=lambda p: p[1], reverse=True)[:5]
     message = "Caughtboard:\n" 
     for i in range(len(caughtboard)):
@@ -93,6 +101,7 @@ def caughtboard(event, say):
 # TODO
 @bolt_app.message("pics")
 def pics(event, say):
+    caught, spot, images = read_db()
     found_spotted = re.search(USER_PATTERN, event['text'])
     if not found_spotted:
         return
