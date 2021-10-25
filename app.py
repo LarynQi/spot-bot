@@ -81,7 +81,16 @@ def log_spot(event, say):
 @bolt_app.message("spotboard")
 def scoreboard(event, say):
     caught, spot, images = read_db(db_client)
-    scoreboard = sorted(spot.items(), key=lambda p: p[1], reverse=True)[:5]
+    try:
+        words = event['text'].split()
+        n = int(words[words.index("spotboard") + 1])
+    except:
+        try:
+            n = int(words[words.index("scoreboard") + 1])
+        except:
+            n = 5
+    print(n)
+    scoreboard = sorted(spot.items(), key=lambda p: p[1], reverse=True)[:n]
     message = "Spotboard:\n" 
     for i in range(len(scoreboard)):
         curr = scoreboard[i]
@@ -91,7 +100,13 @@ def scoreboard(event, say):
 @bolt_app.message("caughtboard")
 def caughtboard(event, say):
     caught, spot, images = read_db(db_client)
-    caughtboard = sorted(caught.items(), key=lambda p: p[1], reverse=True)[:5]
+    try:
+        words = event['text'].split()
+        n = int(words[words.index("caughtboard") + 1])
+    except:
+        n = 5
+    print(n)
+    caughtboard = sorted(caught.items(), key=lambda p: p[1], reverse=True)[:n]
     message = "Caughtboard:\n" 
     for i in range(len(caughtboard)):
         curr = caughtboard[i]
