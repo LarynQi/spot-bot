@@ -34,7 +34,7 @@ db_client = MongoClient(f'mongodb+srv://{os.environ.get("DB_USER")}:{os.environ.
 
 token = os.environ.get("CLIENT_TOKEN")
 client = WebClient(token=token)
-SPOT_WORDS = ["spot", "spotted", "codespot", "codespotted"]
+SPOT_WORDS = ["spot", "spotted", "spotting", "codespot", "codespotted", "codespotting"]
 USER_PATTERN = r"<@[a-zA-Z0-9]{11}>"
 
 # prev = [None, None]
