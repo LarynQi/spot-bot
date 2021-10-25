@@ -1,106 +1,24 @@
-token = ''
+import re
+import os
 
-# # from slackclient import SlackClient
+from flask import Flask, request, make_response
 
 from slack_sdk import WebClient
 from slack_sdk.errors import SlackApiError
-import re
-
-# client = WebClient(token)
-
-# try:
-#     # response = client.conversations_join(channel='#bot-dev')
-#     response = client.chat_postMessage(channel='#bot-dev', text="Hello world!")
-#     assert response["message"]["text"] == "Hello world!"
-# except SlackApiError as e:
-#     assert e.response["ok"] is False
-#     assert e.response["error"]
-#     print(f"Got an error: {e.response['error']}")
-
-import os
 from slack_sdk.signature import SignatureVerifier
+from slack_sdk.webhook import WebhookClient
 
 from slack_bolt import App, Say
 from slack_bolt.adapter.flask import SlackRequestHandler
 
-
-signature_verifier = SignatureVerifier(
-    signing_secret=''
-    # signing_secret=os.environ["SLACK_SIGNING_SECRET"]
-)
-
-from slack_sdk.webhook import WebhookClient
-
-from flask import Flask, request, make_response
 from utils import init_db, read_db, write_db, email_db
+
 app = Flask(__name__)
 
 init_db()
 caught, score, spot, images = read_db()
 
-# @app.route("/spot", methods=["POST"])
-# def spot():
-#     # Verify incoming requests from Slack
-#     # https://api.slack.com/authentication/verifying-requests-from-slack
-
-#     # print(request.form)
-#     request.get_data()
-#     if request.form.get('token', '') != 'XMCKbjVB4FN7ajPyDPXSSzMb':
-#         print('failed 1.')
-#         return make_response("invalid request", 403)
-#     # print(request.headers)
-#     # request.get_data()
-#     if not signature_verifier.is_valid_request(request.data, request.headers):
-#         print('failed 2.')
-#         return make_response("invalid request", 403)
-#     # if not signature_verifier.is_valid(
-#     #     body=request.get_data(),
-#     #     timestamp=request.headers.get("X-Slack-Request-Timestamp"),
-#     #     signature=request.headers.get("X-Slack-Signature")):
-#     #     return make_response("invalid request", 403)
-
-#     print("HI", request.form)
-#     timestamp = request.headers.get("X-Slack-Request-Timestamp")
-#     # Handle a slash command invocation
-#     if "command" in request.form \
-#         and request.form["command"] == "/spot":
-#         response_url = request.form["response_url"]
-#         text = request.form["text"]
-#         webhook = WebhookClient(response_url)
-#         # Send a reply in the channel
-#         response = webhook.send(text=f"You said '{text}'")
-    
-#         client = WebClient(token=token)
-#         try:
-#             response = client.chat_postMessage(channel='#bot-dev', text="Hello world!")
-#             response = client.reactions_add(channel="#bot-dev", name="thumbsup", timestamp=timestamp)
-#             assert response["message"]["text"] == "Hello world!"
-#         except SlackApiError as e:
-#             assert e.response["ok"] is False
-#             assert e.response["error"]
-#             print(f"Got an error: {e.response['error']}")
-
-
-#         # Acknowledge this request
-#         return make_response("", 200)
-
-#     return make_response("", 404)
-# bolt_app = App(token=token)
-
-bolt_app = App(token=token, signing_secret=os.environ.get("SIGNING_SECRET"))
-handler = SlackRequestHandler(bolt_app)
-@app.route("/slack/events", methods=["POST"])
-def handle_events():
-    return handler.handle(request)
-
-# @bolt_app.message("spot")
-# def respond(event, say):
-#     user = event.get("user")
-#     print(event)
-#     say(f"spotted <@{user}>")
-#     client = WebClient(token=token)
-#     response = client.reactions_add(channel=event['channel'], name="white_check_mark", timestamp=event['ts'])
-#     # response = client.reactions_add(channel="#bot-dev", name="thumbsup", timestamp=payload['ts'])
+token = os.environ.get("CLIENT_TOKEN")
 
 client = WebClient(token=token)
 SPOT_WORDS = ["spot", "spotted", "codespot", "codespotted"]
@@ -108,13 +26,18 @@ USER_PATTERN = r"<@[a-zA-Z0-9]{11}>"
 
 prev = [None, None]
 
+bolt_app = App(token=token, signing_secret=os.environ.get("SIGNING_SECRET"))
+handler = SlackRequestHandler(bolt_app)
+
+@app.route("/slack/events", methods=["POST"])
+def handle_events():
+    return handler.handle(request)
+
 @bolt_app.event({
     "type": "message",
     "subtype": "file_share"
 })
 def log_spot(event, say):
-    print(event)
-
     if any([w in event.get('text', '').lower() for w in SPOT_WORDS]):
         spotter = event['user']
         found_spotted = re.search(USER_PATTERN, event['text'])

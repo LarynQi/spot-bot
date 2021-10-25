@@ -1,5 +1,10 @@
 import json
 import os
+import mimetypes
+import smtplib, ssl
+
+from email.mime.multipart import MIMEMultipart
+from email.message import EmailMessage
 
 caught, score, spot, images = {}, {}, {}, {}
 
@@ -31,12 +36,6 @@ def write_db(*args):
         with open(DB_PATH + disk, 'w') as f:
             json.dump(data, f, indent=4)
 
-from email.mime.multipart import MIMEMultipart
-from email.message import EmailMessage
-
-import mimetypes
-import smtplib, ssl
-
 # https://betterprogramming.pub/how-to-send-emails-with-attachments-using-python-dd37c4b6a7fd
 def email_db():
     # port = 465  # For SSL
@@ -50,7 +49,6 @@ def email_db():
         smtp.ehlo()
         smtp.starttls(context=context)
         smtp.ehlo()
-        
         sender = os.environ.get("SENDER_ADDRESS")
         smtp.login(sender, password)
         
