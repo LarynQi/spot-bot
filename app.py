@@ -50,12 +50,20 @@ oauth_settings = OAuthSettings(
     client_secret=os.environ["SLACK_CLIENT_SECRET"],
     scopes=["channels:read", "groups:read", "chat:write"],
     installation_store=FileInstallationStore(base_dir="./data"),
-    state_store=FileOAuthStateStore(expiration_seconds=600, base_dir="./data")
+    state_store=FileOAuthStateStore(expiration_seconds=600, base_dir="./data"),
 )
 
 bolt_app = App(token=token, signing_secret=os.environ.get("SIGNING_SECRET"), oauth_settings=oauth_settings)
 
 handler = SlackRequestHandler(bolt_app)
+
+@app.route("/slack/oauth_redirect", methods=["GET"])
+def handle_oauth():
+    return handler.handle(request)
+
+@app.route("/slack/install")
+def handle_install():
+    return handler.handle(request)
 
 @app.route("/slack/events", methods=["POST"])
 def handle_events():
