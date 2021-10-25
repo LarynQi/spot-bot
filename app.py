@@ -19,13 +19,12 @@ init_db()
 caught, score, spot, images = read_db()
 
 token = os.environ.get("CLIENT_TOKEN")
-
+print(os.environ)
 client = WebClient(token=token)
 SPOT_WORDS = ["spot", "spotted", "codespot", "codespotted"]
 USER_PATTERN = r"<@[a-zA-Z0-9]{11}>"
 
 prev = [None, None]
-
 bolt_app = App(token=token, signing_secret=os.environ.get("SIGNING_SECRET"))
 handler = SlackRequestHandler(bolt_app)
 
@@ -95,17 +94,25 @@ def pics(event, say):
 def ignore():
     pass
 
-import time
-import atexit
-from apscheduler.schedulers.background import BackgroundScheduler
-
-scheduler = BackgroundScheduler()
-scheduler.add_job(func=email_db, trigger="interval", seconds=30)
-
 # https://stackoverflow.com/questions/21214270/how-to-schedule-a-function-to-run-every-hour-on-flask
 
+# import time
+# import atexit
+# from apscheduler.schedulers.background import BackgroundScheduler
+
+# scheduler = BackgroundScheduler()
+# scheduler.add_job(func=email_db, trigger="interval", seconds=30)
+
+from flask_apscheduler import APScheduler
+
+scheduler = APScheduler()
+scheduler.init_app(app)
+scheduler.start()
+scheduler.add_job(func=email_db, trigger="interval", seconds=30, id='0')
+
+
 if __name__ == '__main__':
-    scheduler.start()
-    atexit.register(lambda: scheduler.shutdown())
+    # scheduler.start()
+    # atexit.register(lambda: scheduler.shutdown())
     app.run(threaded=True, port=5000)
     # bolt_app.start(5000)
