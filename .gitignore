@@ -1,4 +1,4 @@
 env/
 db/
 __pycache__/
-env.sh
+.env

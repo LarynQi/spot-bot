@@ -11,21 +11,32 @@ from slack_sdk.webhook import WebhookClient
 from slack_bolt import App, Say
 from slack_bolt.adapter.flask import SlackRequestHandler
 
-from utils import init_db, read_db, write_db, email_db
+# from utils import init_db, read_db, write_db, email_db, setup_db, insert_db
+
+from utils import setup_db, insert_db
+from dotenv import load_dotenv
+
+load_dotenv()
 
 app = Flask(__name__)
 
-init_db()
-caught, score, spot, images = read_db()
+# init_db()
+# caught, score, spot, images = read_db()
+
+db_caught, db_spot, db_images = setup_db()
+
+caught, spot, images = {item['_id']: item['data'] for item in db_caught.find({})}, {item['_id']: item['data'] for item in db_spot.find({})}, {item['_id']: item['data'] for item in db_images.find({})}
+
+# print(caught, spot, images)
 
 token = os.environ.get("CLIENT_TOKEN")
-print(os.environ)
 client = WebClient(token=token)
 SPOT_WORDS = ["spot", "spotted", "codespot", "codespotted"]
 USER_PATTERN = r"<@[a-zA-Z0-9]{11}>"
 
 prev = [None, None]
 bolt_app = App(token=token, signing_secret=os.environ.get("SIGNING_SECRET"))
+
 handler = SlackRequestHandler(bolt_app)
 
 @app.route("/slack/events", methods=["POST"])
@@ -55,7 +66,9 @@ def log_spot(event, say):
         else:
             prev[0] = spotter
             prev[1] = 1
-        write_db(caught, score, spot, images)
+        # write_db(caught, score, spot, images)
+        # print(caught, spot, images)
+        insert_db((db_caught, caught), (db_spot, spot), (db_images, images))
         response = client.reactions_add(channel=event['channel'], name="white_check_mark", timestamp=event['ts'])
 
 @bolt_app.message("scoreboard")
@@ -103,12 +116,12 @@ def ignore():
 # scheduler = BackgroundScheduler()
 # scheduler.add_job(func=email_db, trigger="interval", seconds=30)
 
-from flask_apscheduler import APScheduler
+# from flask_apscheduler import APScheduler
 
-scheduler = APScheduler()
-scheduler.init_app(app)
-scheduler.start()
-scheduler.add_job(func=email_db, trigger="interval", minutes=30, id='0')
+# scheduler = APScheduler()
+# scheduler.init_app(app)
+# scheduler.start()
+# scheduler.add_job(func=email_db, trigger="interval", minutes=30, id='0')
 
 
 if __name__ == '__main__':
