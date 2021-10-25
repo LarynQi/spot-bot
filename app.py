@@ -108,7 +108,7 @@ from flask_apscheduler import APScheduler
 scheduler = APScheduler()
 scheduler.init_app(app)
 scheduler.start()
-scheduler.add_job(func=email_db, trigger="interval", seconds=30, id='0')
+scheduler.add_job(func=email_db, trigger="interval", minutes=30, id='0')
 
 
 if __name__ == '__main__':
