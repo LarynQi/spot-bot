@@ -11,6 +11,10 @@ from slack_sdk.webhook import WebhookClient
 from slack_bolt import App, Say
 from slack_bolt.adapter.flask import SlackRequestHandler
 
+from slack_bolt.oauth.oauth_settings import OAuthSettings
+from slack_sdk.oauth.installation_store import FileInstallationStore
+from slack_sdk.oauth.state_store import FileOAuthStateStore
+
 # from utils import init_db, read_db, write_db, email_db, setup_db, insert_db
 
 from utils import read_db, write_db, read_prev, write_prev
@@ -39,7 +43,17 @@ USER_PATTERN = r"<@[a-zA-Z0-9]{11}>"
 
 # prev = [None, None]
 # prev = read_prev(db_client)
-bolt_app = App(token=token, signing_secret=os.environ.get("SIGNING_SECRET"))
+
+# https://slack.dev/bolt-python/concepts#authenticating-oauth
+oauth_settings = OAuthSettings(
+    client_id=os.environ["SLACK_CLIENT_ID"],
+    client_secret=os.environ["SLACK_CLIENT_SECRET"],
+    scopes=["channels:read", "groups:read", "chat:write"],
+    installation_store=FileInstallationStore(base_dir="./data"),
+    state_store=FileOAuthStateStore(expiration_seconds=600, base_dir="./data")
+)
+
+bolt_app = App(token=token, signing_secret=os.environ.get("SIGNING_SECRET"), oauth_settings=oauth_settings)
 
 handler = SlackRequestHandler(bolt_app)
 
