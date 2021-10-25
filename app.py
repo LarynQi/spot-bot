@@ -98,18 +98,25 @@ def caughtboard(event, say):
         message += f"{i + 1}. {curr[0]} - {curr[1]}\n" 
     say(message)
 
-# TODO
+# https://slack.dev/bolt-python/concepts
 @bolt_app.message("pics")
 def pics(event, say):
-    caught, spot, images = read_db()
+    caught, spot, images = read_db(db_client)
     found_spotted = re.search(USER_PATTERN, event['text'])
     if not found_spotted:
         return
     spotted = found_spotted[0]
     message = f"Spots of {spotted}:\n"
     for link in images[spotted]:
-        message += f"{link}\n"
-    print(message)
+        message += f"• {link}\n"
+    blocks = [{
+        "type": "section",
+        "text": {
+            "type": "mrkdwn",
+            "text": message
+        }
+    }]
+    say(blocks=blocks, text=message)
 
 @bolt_app.event("file_shared")
 @bolt_app.event("message")
