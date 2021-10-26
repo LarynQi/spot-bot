@@ -11,9 +11,9 @@ from slack_sdk.webhook import WebhookClient
 from slack_bolt import App, Say
 from slack_bolt.adapter.flask import SlackRequestHandler
 
-from slack_bolt.oauth.oauth_settings import OAuthSettings
-from slack_sdk.oauth.installation_store import FileInstallationStore
-from slack_sdk.oauth.state_store import FileOAuthStateStore
+# from slack_bolt.oauth.oauth_settings import OAuthSettings
+# from slack_sdk.oauth.installation_store import FileInstallationStore
+# from slack_sdk.oauth.state_store import FileOAuthStateStore
 
 # from utils import init_db, read_db, write_db, email_db, setup_db, insert_db
 
@@ -39,7 +39,7 @@ db_client = MongoClient(f'mongodb+srv://{os.environ.get("DB_USER")}:{os.environ.
 token = os.environ.get("CLIENT_TOKEN")
 client = WebClient(token=token)
 SPOT_WORDS = ["spot", "spotted", "spotting", "codespot", "codespotted", "codespotting"]
-USER_PATTERN = r"<@[a-zA-Z0-9]{11}>"
+USER_PATTERN = r"<@[a-zA-Z0-9]+>"
 
 # prev = [None, None]
 # prev = read_prev(db_client)
@@ -58,13 +58,13 @@ bolt_app = App(token=token, signing_secret=os.environ.get("SIGNING_SECRET"))
 
 handler = SlackRequestHandler(bolt_app)
 
-@app.route("/slack/oauth_redirect", methods=["GET"])
-def handle_oauth():
-    return handler.handle(request)
+# @app.route("/slack/oauth_redirect", methods=["GET"])
+# def handle_oauth():
+#     return handler.handle(request)
 
-@app.route("/slack/install")
-def handle_install():
-    return handler.handle(request)
+# @app.route("/slack/install")
+# def handle_install():
+#     return handler.handle(request)
 
 @app.route("/slack/events", methods=["POST"])
 def handle_events():
@@ -112,7 +112,6 @@ def scoreboard(event, say):
             n = int(words[words.index("scoreboard") + 1])
         except:
             n = 5
-    print(n)
     scoreboard = sorted(spot.items(), key=lambda p: p[1], reverse=True)[:n]
     message = "Spotboard:\n" 
     for i in range(len(scoreboard)):
@@ -128,7 +127,6 @@ def caughtboard(event, say):
         n = int(words[words.index("caughtboard") + 1])
     except:
         n = 5
-    print(n)
     caughtboard = sorted(caught.items(), key=lambda p: p[1], reverse=True)[:n]
     message = "Caughtboard:\n" 
     for i in range(len(caughtboard)):
