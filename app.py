@@ -78,14 +78,15 @@ def log_spot(event, say):
     caught, spot, images = read_db(db_client)
     if any([w in event.get('text', '').lower() for w in SPOT_WORDS]):
         spotter = event['user']
-        found_spotted = re.search(USER_PATTERN, event['text'])
+        found_spotted = re.findall(USER_PATTERN, event['text'])
         if not found_spotted:
             return
-        spotted = found_spotted[0]
-        spot[spotter] = spot.get(spotter, 0) + 1
-        caught[spotted] = caught.get(spotted, 0) + 1
-        for image in event['files']:
-            images[spotted] = images.get(spotted, []) + [image['url_private']]
+        for spotted in found_spotted:
+            spotted = found_spotted[0]
+            caught[spotted] = caught.get(spotted, 0) + 1
+            for image in event['files']:
+                images[spotted] = images.get(spotted, []) + [image['url_private']]
+            spot[spotter] = spot.get(spotter, 0) + 1
         prev = read_prev(db_client, spotter)
         if spotter == prev[0]:
             prev[1] += 1
@@ -116,7 +117,8 @@ def scoreboard(event, say):
     message = "Spotboard:\n" 
     for i in range(len(scoreboard)):
         curr = scoreboard[i]
-        message += f"{i + 1}. <@{curr[0]}> - {curr[1]}\n" 
+        # message += f"{i + 1}. <@{curr[0]}> - {curr[1]}\n"
+        message += f"{i + 1}. {get_display_name(curr[0])} - {curr[1]}\n" 
     say(message)
 
 @bolt_app.message("caughtboard")
@@ -131,7 +133,7 @@ def caughtboard(event, say):
     message = "Caughtboard:\n" 
     for i in range(len(caughtboard)):
         curr = caughtboard[i]
-        message += f"{i + 1}. {curr[0]} - {curr[1]}\n" 
+        message += f"{i + 1}. {get_display_name(curr[0][2:-1])} - {curr[1]}\n"  
     say(message)
 
 # https://slack.dev/bolt-python/concepts
@@ -142,7 +144,7 @@ def pics(event, say):
     if not found_spotted:
         return
     spotted = found_spotted[0]
-    message = f"Spots of {spotted}:\n"
+    message = f"Spots of {get_display_name(spotted[2:-1])}:\n"
     for link in images[spotted]:
         message += f"• {link}\n"
     blocks = [{
@@ -153,6 +155,13 @@ def pics(event, say):
         }
     }]
     say(blocks=blocks, text=message)
+
+def get_display_name(user):
+    try:
+        profile = bolt_app.client.users_profile_get(user=user)['profile']
+        return profile['display_name'] or profile['real_name']
+    except:
+        print("couldn't find: ", user)
 
 @bolt_app.event("file_shared")
 @bolt_app.event("message")
