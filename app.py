@@ -45,15 +45,16 @@ USER_PATTERN = r"<@[a-zA-Z0-9]{11}>"
 # prev = read_prev(db_client)
 
 # https://slack.dev/bolt-python/concepts#authenticating-oauth
-oauth_settings = OAuthSettings(
-    client_id=os.environ["SLACK_CLIENT_ID"],
-    client_secret=os.environ["SLACK_CLIENT_SECRET"],
-    scopes=["channels:read", "groups:read", "chat:write"],
-    installation_store=FileInstallationStore(base_dir="./data"),
-    state_store=FileOAuthStateStore(expiration_seconds=600, base_dir="./data"),
-)
+# oauth_settings = OAuthSettings(
+#     client_id=os.environ["SLACK_CLIENT_ID"],
+#     client_secret=os.environ["SLACK_CLIENT_SECRET"],
+#     scopes=["channels:read", "groups:read", "chat:write"],
+#     installation_store=FileInstallationStore(base_dir="./data"),
+#     state_store=FileOAuthStateStore(expiration_seconds=600, base_dir="./data"),
+# )
 
-bolt_app = App(token=token, signing_secret=os.environ.get("SIGNING_SECRET"), oauth_settings=oauth_settings)
+bolt_app = App(token=token, signing_secret=os.environ.get("SIGNING_SECRET"))
+# bolt_app = App(token=token, signing_secret=os.environ.get("SIGNING_SECRET"), oauth_settings=oauth_settings)
 
 handler = SlackRequestHandler(bolt_app)
 
@@ -180,5 +181,5 @@ def ignore():
 if __name__ == '__main__':
     # scheduler.start()
     # atexit.register(lambda: scheduler.shutdown())
-    # app.run(threaded=True, port=5000)
-    bolt_app.start(5000)
+    app.run(threaded=True, port=5000)
+    # bolt_app.start(5000)
