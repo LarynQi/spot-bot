@@ -82,7 +82,6 @@ def log_spot(event, say):
         if not found_spotted:
             return
         for spotted in found_spotted:
-            spotted = found_spotted[0]
             caught[spotted] = caught.get(spotted, 0) + 1
             for image in event['files']:
                 images[spotted] = images.get(spotted, []) + [image['url_private']]
