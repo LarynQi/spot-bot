@@ -17,10 +17,9 @@ from slack_bolt.adapter.flask import SlackRequestHandler
 
 # from utils import init_db, read_db, write_db, email_db, setup_db, insert_db
 
-from utils import read_db, write_db, read_prev, write_prev
+from utils import read_db, write_db, read_prev, write_prev, DATABASES, DB_NAME 
 from dotenv import load_dotenv
 from pymongo import MongoClient
-
 
 load_dotenv()
 
@@ -100,16 +99,14 @@ def log_spot(event, say):
         write_db(db_client, caught, spot, images)
         response = client.reactions_add(channel=event['channel'], name="white_check_mark", timestamp=event['ts'])
 
-@bolt_app.message("scoreboard")
-@bolt_app.message("spotboard")
-def scoreboard(event, say):
-    caught, spot, images = read_db(db_client)
+def scoreboard(event, say, prefix="", db_name=DB_NAME):
+    caught, spot, images = read_db(db_client, db_name)
     try:
-        words = event['text'].split()
-        n = int(words[words.index("spotboard") + 1])
+        words = event['text'].lower().split()
+        n = int(words[words.index(prefix + "spotboard") + 1])
     except:
         try:
-            n = int(words[words.index("scoreboard") + 1])
+            n = int(words[words.index(prefix + "scoreboard") + 1])
         except:
             n = 5
     scoreboard = sorted(spot.items(), key=lambda p: p[1], reverse=True)[:n]
@@ -120,12 +117,25 @@ def scoreboard(event, say):
         message += f"{i + 1}. {get_display_name(curr[0])} - {curr[1]}\n" 
     say(message)
 
-@bolt_app.message("caughtboard")
-def caughtboard(event, say):
-    caught, spot, images = read_db(db_client)
+@bolt_app.message("fa21-scoreboard")
+@bolt_app.message("fa21-spotboard")
+@bolt_app.message("fa21-Scoreboard")
+@bolt_app.message("fa21-Spotboard")
+def fa21_scoreboard(event, say):
+    scoreboard(event, say, prefix="fa21-", db_name=DATABASES['fa21'])
+
+@bolt_app.message("scoreboard")
+@bolt_app.message("spotboard")
+@bolt_app.message("Scoreboard")
+@bolt_app.message("Spotboard")
+def curr_scoreboard(event, say):
+    scoreboard(event, say)
+
+def caughtboard(event, say, prefix="", db_name=DB_NAME):
+    caught, spot, images = read_db(db_client, db_name)
     try:
-        words = event['text'].split()
-        n = int(words[words.index("caughtboard") + 1])
+        words = event['text'].lower().split()
+        n = int(words[words.index(prefix + "caughtboard") + 1])
     except:
         n = 5
     caughtboard = sorted(caught.items(), key=lambda p: p[1], reverse=True)[:n]
@@ -135,10 +145,18 @@ def caughtboard(event, say):
         message += f"{i + 1}. {get_display_name(curr[0][2:-1])} - {curr[1]}\n"  
     say(message)
 
-# https://slack.dev/bolt-python/concepts
-@bolt_app.message("pics")
-def pics(event, say):
-    caught, spot, images = read_db(db_client)
+@bolt_app.message("fa21-caughtboard")
+@bolt_app.message("fa21-Caughtboard")
+def fa21_caughtboard(event, say):
+    caughtboard(event, say, prefix="fa21-", db_name=DATABASES['fa21'])
+
+@bolt_app.message("caughtboard")
+@bolt_app.message("Caughtboard")
+def curr_caughtboard(event, say):
+    caughtboard(event, say)
+
+def pics(event, say, db_name=DB_NAME):
+    caught, spot, images = read_db(db_client, db_name)
     found_spotted = re.search(USER_PATTERN, event['text'])
     if not found_spotted:
         return
@@ -154,6 +172,16 @@ def pics(event, say):
         }
     }]
     say(blocks=blocks, text=message)
+
+@bolt_app.message("fa21-pics")
+def fa21_pics(event, say):
+    pics(event, say, db_name=DATABASES['fa21'])
+
+# https://slack.dev/bolt-python/concepts
+@bolt_app.message("pics")
+def curr_pics(event, say):
+    pics(event, say)
+
 
 def get_display_name(user):
     try:

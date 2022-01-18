@@ -10,6 +10,13 @@ import requests
 
 caught, score, spot, images = {}, {}, {}, {}
 
+DATABASES = {
+    'fa21': 'spottings',
+    'sp22': 'sp22-spottings'
+}
+
+DB_NAME = DATABASES['sp22']
+
 # DB_PATH = "db/"
 # DB = {
 #     "caughtboard.json": caught,
@@ -73,16 +80,17 @@ caught, score, spot, images = {}, {}, {}, {}
 #                                 filename=filename)
 #         smtp.send_message(message)
 
-def read_db(client):
-    db = client.get_database('spottings')
+
+def read_db(client, db_name=DB_NAME):
+    db = client.get_database(db_name)
     db_caught, db_spot, db_images = db.get_collection('caught'), db.get_collection('spot'), db.get_collection('images')
 
     caught, spot, images = {item['_id']: item['data'] for item in db_caught.find({})}, {item['_id']: item['data'] for item in db_spot.find({})}, {item['_id']: item['data'] for item in db_images.find({})}
 
     return caught, spot, images
 
-def write_db(*args):
-    db = args[0].get_database('spottings')
+def write_db(*args, db_name=DB_NAME):
+    db = args[0].get_database(db_name)
     collections = [db.get_collection('caught'), db.get_collection('spot'), db.get_collection('images')]
     for collection, data in zip(collections, args[1:]):
         for entry in data:
@@ -91,8 +99,8 @@ def write_db(*args):
             except:
                 collection.update_one({"_id": entry}, {'$set': {"data": data[entry]}})
 
-def read_prev(client, spotter):
-    db = client.get_database('spottings')
+def read_prev(client, spotter, db_name=DB_NAME):
+    db = client.get_database(db_name)
     try:
         res = next(iter(db.get_collection('prev').find({})))
         return [res["_id"], res["data"]]
@@ -100,7 +108,7 @@ def read_prev(client, spotter):
         return [spotter, 0] 
     
 
-def write_prev(client, prev):
-    collection = client.get_database('spottings').get_collection('prev')
+def write_prev(client, prev, db_name=DB_NAME):
+    collection = client.get_database(db_name).get_collection('prev')
     collection.remove({})
     collection.insert_one({"_id": prev[0], "data": prev[1]})
