@@ -3,8 +3,12 @@ caught, score, spot, images = {}, {}, {}, {}
 DATABASES = {
     'fa21': 'spottings',
     'sp22': 'sp22-spottings',
+    '61a-su22': '61a-su22-spottings',
+    '61a-fa22': '61a-fa22-spottings',
+    'csm-exec': 'csm-exec-spottings'
     'fa22': 'cb-fa22-spottings',
-    'sp23': 'cb-sp23-spottings'
+    'sp23': 'cb-sp23-spottings',
+    '61a-sp23': '61a-sp23-spottings'
 }
 
 DB_NAME = DATABASES['sp23']
