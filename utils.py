@@ -8,10 +8,14 @@ DATABASES = {
     'csm-exec': 'csm-exec-spottings',
     'fa22': 'cb-fa22-spottings',
     'sp23': 'cb-sp23-spottings',
-    '61a-sp23': '61a-sp23-spottings'
+    '61a-sp23': '61a-sp23-spottings',
+    'anova': 'anova-spottings',
+    '180': '180-spottings',
+    'data8-fa23': 'data8-fa23-spottings',
+    'fa23': 'cb-fa23-spottings'
 }
 
-DB_NAME = DATABASES['sp23']
+DB_NAME = DATABASES['fa23']
 
 def read_db(client, db_name=DB_NAME):
     db = client.get_database(db_name)
