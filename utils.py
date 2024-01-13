@@ -12,10 +12,11 @@ DATABASES = {
     'anova': 'anova-spottings',
     '180': '180-spottings',
     'data8-fa23': 'data8-fa23-spottings',
-    'fa23': 'cb-fa23-spottings'
+    'fa23': 'cb-fa23-spottings',
+    'data8-sp24': 'data8-sp24-spottings'
 }
 
-DB_NAME = DATABASES['fa23']
+DB_NAME = DATABASES['data8-sp24']
 
 def read_db(client, db_name=DB_NAME):
     db = client.get_database(db_name)
