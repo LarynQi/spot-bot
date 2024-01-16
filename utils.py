@@ -8,10 +8,12 @@ DATABASES = {
     'csm-exec': 'csm-exec-spottings',
     'fa22': 'cb-fa22-spottings',
     'sp23': 'cb-sp23-spottings',
-    '61a-sp23': '61a-sp23-spottings'
+    '61a-sp23': '61a-sp23-spottings',
+    '180': '180-spottings',
+    '180-fa23': '180-fa23-spottings'
 }
 
-DB_NAME = DATABASES['sp23']
+DB_NAME = DATABASES['180-fa23']
 
 def read_db(client, db_name=DB_NAME):
     db = client.get_database(db_name)
@@ -44,3 +46,29 @@ def write_prev(client, prev, db_name=DB_NAME):
     collection = client.get_database(db_name).get_collection('prev')
     collection.remove({})
     collection.insert_one({"_id": prev[0], "data": prev[1]})
+
+def init_db(client, db_name):
+    db = client.get_database(db_name)
+    spot = db.get_collection('spot')
+    spot.insert_one({})
+    spot.remove({})
+    caught = db.get_collection('caught')
+    caught.insert_one({})
+    caught.remove({})
+    images = db.get_collection('images')
+    images.insert_one({})
+    images.remove({})
+    prev = db.get_collection('prev')
+    prev.insert_one({})
+    prev.remove({})
+
+    curr_db_collection = client.get_database(DATABASES['180-fa23']).get_collection('curr_db')
+    curr_db_collection.remove({})
+    curr_db_collection.insert_one({"_id": 0, "data": db_name})
+
+    return db_name
+
+def read_db_name(client):
+    db = client.get_database(DATABASES['180-fa23'])
+    collection = db.get_collection('curr_db')
+    return next(iter(collection.find({})))['data']
