@@ -171,9 +171,9 @@ def reset(ack, respond, command):
     # respond(f'{str(command)}', response_type='in_channel')
     if command['text'] == os.environ.get("RESET_PASSWORD"):
         _reset()
-        respond('success', response_type='in_channel')
+        respond('successfully reset db', response_type='in_channel')
     else:
-        respond('failed', response_type='in_channel')
+        respond('failed to reset db', response_type='in_channel')
 
 if __name__ == '__main__':
     app.run(threaded=True, port=5000)
