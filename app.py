@@ -1,7 +1,7 @@
 import re
 import os
 
-from flask import Flask, request, make_response
+from flask import Flask, request, make_response, jsonify
 
 from slack_sdk import WebClient
 from slack_sdk.errors import SlackApiError
@@ -11,7 +11,7 @@ from slack_sdk.webhook import WebhookClient
 from slack_bolt import App, Say
 from slack_bolt.adapter.flask import SlackRequestHandler
 
-from utils import read_db, write_db, read_prev, write_prev, DATABASES, DB_NAME 
+from utils import read_db, write_db, read_prev, write_prev, DATABASES, init_db, read_db_name
 from dotenv import load_dotenv
 from pymongo import MongoClient
 
@@ -20,6 +20,8 @@ load_dotenv()
 app = Flask(__name__)
 
 db_client = MongoClient(f'mongodb+srv://{os.environ.get("DB_USER")}:{os.environ.get("PASSWORD")}@cluster0.xzki5.mongodb.net/codespotting?retryWrites=true&w=majority')
+
+DB_NAME = lambda: read_db_name(db_client)
 
 token = os.environ.get("CLIENT_TOKEN")
 client = WebClient(token=token)
@@ -41,7 +43,7 @@ def handle_events():
     "subtype": "file_share"
 })
 def log_spot(event, say):
-    caught, spot, images = read_db(db_client)
+    caught, spot, images = read_db(db_client, db_name=DB_NAME())
     if any([w in event.get('text', '').lower() for w in SPOT_WORDS]):
         spotter = event['user']
         found_spotted = re.findall(USER_PATTERN, event['text'])
@@ -52,7 +54,7 @@ def log_spot(event, say):
             for image in event['files']:
                 images[spotted] = images.get(spotted, []) + [image['url_private']]
             spot[spotter] = spot.get(spotter, 0) + 1
-        prev = read_prev(db_client, spotter)
+        prev = read_prev(db_client, spotter, db_name=DB_NAME())
         if spotter == prev[0]:
             prev[1] += 1
             if prev[1] >= 3:
@@ -60,11 +62,11 @@ def log_spot(event, say):
         else:
             prev[0] = spotter
             prev[1] = 1
-        write_prev(db_client, prev)
-        write_db(db_client, caught, spot, images)
+        write_prev(db_client, prev, db_name=DB_NAME())
+        write_db(db_client, caught, spot, images, db_name=DB_NAME())
         response = client.reactions_add(channel=event['channel'], name="white_check_mark", timestamp=event['ts'])
 
-def scoreboard(event, say, prefix="", db_name=DB_NAME):
+def scoreboard(event, say, prefix="", db_name=DB_NAME()):
     caught, spot, images = read_db(db_client, db_name)
     try:
         words = event['text'].lower().split()
@@ -99,6 +101,10 @@ def sp22_scoreboard(event, say):
 @bolt_app.message("fa22-spotboard")
 @bolt_app.message("fa22-Scoreboard")
 @bolt_app.message("fa22-Spotboard")
+@bolt_app.message("sp23-scoreboard")
+@bolt_app.message("sp23-spotboard")
+@bolt_app.message("sp23-Scoreboard")
+@bolt_app.message("sp23-Spotboard")
 def fa22_scoreboard(event, say):
     scoreboard(event, say, prefix="fa22-", db_name=DATABASES['fa22'])
 
@@ -107,9 +113,9 @@ def fa22_scoreboard(event, say):
 @bolt_app.message("Scoreboard")
 @bolt_app.message("Spotboard")
 def curr_scoreboard(event, say):
-    scoreboard(event, say)
+    scoreboard(event, say, db_name=DB_NAME())
 
-def caughtboard(event, say, prefix="", db_name=DB_NAME):
+def caughtboard(event, say, prefix="", db_name=DB_NAME()):
     caught, spot, images = read_db(db_client, db_name)
     try:
         words = event['text'].lower().split()
@@ -135,15 +141,17 @@ def sp22_caughtboard(event, say):
 
 @bolt_app.message("fa22-caughtboard")
 @bolt_app.message("fa22-Caughtboard")
+@bolt_app.message("sp23-caughtboard")
+@bolt_app.message("sp23-Caughtboard")
 def fa22_caughtboard(event, say):
     caughtboard(event, say, prefix="fa22-", db_name=DATABASES['fa22'])
 
 @bolt_app.message("caughtboard")
 @bolt_app.message("Caughtboard")
 def curr_caughtboard(event, say):
-    caughtboard(event, say)
+    caughtboard(event, say, db_name=DB_NAME())
 
-def pics(event, say, db_name=DB_NAME):
+def pics(event, say, db_name=DB_NAME()):
     caught, spot, images = read_db(db_client, db_name)
     found_spotted = re.search(USER_PATTERN, event['text'])
     if not found_spotted:
@@ -172,11 +180,15 @@ def sp22_pics(event, say):
 @bolt_app.message("fa22-pics")
 def fa22_pics(event, say):
     pics(event, say, db_name=DATABASES['fa22'])
+    
+@bolt_app.message("sp23-pics")
+def sp23_pics(event, say):
+    pics(event, say, db_name=DATABASES['sp23'])
 
 # https://slack.dev/bolt-python/concepts
 @bolt_app.message("pics")
 def curr_pics(event, say):
-    pics(event, say)
+    pics(event, say, db_name=DB_NAME())
 
 def get_display_name(user):
     try:
@@ -184,6 +196,24 @@ def get_display_name(user):
         return profile['display_name'] or profile['real_name']
     except:
         print("couldn't find: ", user)
+
+from datetime import datetime
+
+def _reset():
+    dt = datetime.now().astimezone().replace(microsecond=0).isoformat()
+    new_DB_NAME = init_db(db_client, f'cb|{dt}')
+    return new_DB_NAME
+
+@bolt_app.command('/reset')
+def reset(ack, respond, command):
+    ack()
+    # https://api.slack.com/tutorials/uploading-files-with-python
+    # respond(f'{str(command)}', response_type='in_channel')
+    if 'text' in command and command['text'] == os.environ.get("RESET_PASSWORD"):
+        _reset()
+        respond('successfully reset db', response_type='in_channel')
+    else:
+        respond('failed to reset db', response_type='in_channel')
 
 if __name__ == '__main__':
     app.run(threaded=True, port=5000)
